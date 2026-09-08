@@ -1,0 +1,113 @@
+schema-version: 1.0
+
+
+references:
+
+
+  normative:
+
+
+    - id: RFC2119
+      title: Key words for use in RFCs to Indicate Requirement Levels
+      organization: IETF
+      version: "1997"
+      category: Normative
+      status: Active
+      url: https://www.rfc-editor.org/rfc/rfc2119
+      notes: Defines MUST, SHOULD, MAY, SHALL terminology.
+
+
+    - id: RFC8174
+      title: Ambiguity of Uppercase vs Lowercase Requirement Keywords
+      organization: IETF
+      version: "2017"
+      category: Normative
+      status: Active
+      url: https://www.rfc-editor.org/rfc/rfc8174
+
+
+    - id: SEMVER20
+      title: Semantic Versioning 2.0.0
+      organization: SemVer
+      version: "2.0.0"
+      category: Normative
+      status: Active
+      url: https://semver.org/
+
+
+    - id: COMMONMARK
+      title: CommonMark Specification
+      organization: CommonMark
+      version: Current
+      category: Normative
+      status: Active
+      url: https://spec.commonmark.org/
+
+
+    - id: YAML12
+      title: YAML Language Specification
+      organization: YAML
+      version: "1.2"
+      category: Normative
+      status: Active
+      url: https://yaml.org/spec/
+
+
+    - id: JSONSCHEMA
+      title: JSON Schema
+      organization: JSON Schema Organization
+      version: Current
+      category: Normative
+      status: Active
+      url: https://json-schema.org/
+
+
+  informative:
+
+
+    - id: BITCOIN
+      title: Bitcoin: A Peer-to-Peer Electronic Cash System
+      organization: Satoshi Nakamoto
+      version: "2008"
+      category: Informative
+      status: Active
+
+
+    - id: BIP
+      title: Bitcoin Improvement Proposals
+      organization: Bitcoin Project
+      version: Current
+      category: Informative
+      status: Active
+
+
+    - id: BITCOINCORE
+      title: Bitcoin Core
+      organization: Bitcoin Core Project
+      version: Current
+      category: Informative
+      status: Active
+
+
+    - id: EIP
+      title: Ethereum Improvement Proposals
+      organization: Ethereum Foundation
+      version: Current
+      category: Informative
+      status: Active
+
+
+    - id: NIST
+      title: NIST Cryptographic Standards
+      organization: National Institute of Standards and Technology
+      version: Current
+      category: Informative
+      status: Active
+
+
+    - id: OWASP
+      title: OWASP Secure Coding Practices
+      organization: OWASP Foundation
+      version: Current
+      category: Informative
+      status: Active

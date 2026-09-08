@@ -1,0 +1,16 @@
+acceptance-levels:
+
+  AL1:
+    name: Specification Complete
+
+  AL2:
+    name: Implementation Complete
+
+  AL3:
+    name: Interoperability Verified
+
+  AL4:
+    name: Production Proven
+
+  AL5:
+    reserved: true

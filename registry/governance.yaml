@@ -1,0 +1,26 @@
+governance:
+
+  version: 1.0
+
+  editors:
+    - name: GBIP Editors
+
+  mandatory-reviews:
+    - Security
+    - Consensus
+    - Cryptographic
+    - Performance
+
+  acceptance-levels:
+    - AL1
+    - AL2
+    - AL3
+    - AL4
+
+  release-channels:
+    - Development
+    - Alpha
+    - Beta
+    - Release Candidate
+    - Stable
+    - Long-Term Support

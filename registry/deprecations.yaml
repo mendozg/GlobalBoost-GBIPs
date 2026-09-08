@@ -1,0 +1,15 @@
+Deprecation-Registry:
+
+  - Feature: Legacy RPC Authentication
+    Status: Deprecated
+    Since-Version: 29.1.0
+    Planned-Removal: 31.0.0
+    Replacement: Token Authentication
+    GBIP: GBIP-0034
+
+  - Feature: Legacy Wallet Database
+    Status: Legacy
+    Since-Version: 30.0.0
+    Planned-Removal: 32.0.0
+    Replacement: WalletDB v2
+    GBIP: GBIP-0042

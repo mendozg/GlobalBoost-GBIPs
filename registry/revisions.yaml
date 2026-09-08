@@ -1,0 +1,27 @@
+schema-version: 1.0
+
+revisions:
+
+  - version: 1.0
+    date: 2026-09-06
+    type: Initial Release
+    category:
+      - Governance
+      - Technical
+    approved-by: Initial Publication
+    summary:
+      - Established the GBIP framework.
+      - Defined proposal lifecycle.
+      - Standardized Review Profile.
+      - Introduced Acceptance Levels.
+      - Defined Release Policy.
+      - Introduced machine-readable registries.
+
+  - version: 1.1
+    date: TBD
+    type: Minor Revision
+    category:
+      - Governance
+    approved-by: GBIP-00XX
+    summary:
+      - Reserved for future revisions.

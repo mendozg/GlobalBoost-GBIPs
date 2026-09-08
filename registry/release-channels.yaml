@@ -1,0 +1,8 @@
+channels:
+
+  - Development
+  - Alpha
+  - Beta
+  - Release Candidate
+  - Stable
+  - Long-Term Support

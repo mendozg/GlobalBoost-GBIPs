@@ -1,0 +1,54 @@
+schema-version: 1.0
+
+
+domains:
+
+
+  - id: governance
+    range: GBIP-0000-0099
+    title: Governance & Core Architecture
+
+
+  - id: consensus
+    range: GBIP-0100-0199
+    title: Consensus & Blockchain
+
+
+  - id: networking
+    range: GBIP-0200-0299
+    title: Networking & P2P
+
+
+  - id: wallets
+    range: GBIP-0300-0399
+    title: Wallets & Addresses
+
+
+  - id: cryptography
+    range: GBIP-0400-0499
+    title: Cryptography
+
+
+  - id: developer-platform
+    range: GBIP-0500-0599
+    title: APIs & Developer Platform
+
+
+  - id: light-clients
+    range: GBIP-0600-0699
+    title: Light Clients & Mobile
+
+
+  - id: mining
+    range: GBIP-0700-0799
+    title: Mining & Validation
+
+
+  - id: ecosystem
+    range: GBIP-0800-0899
+    title: Ecosystem Standards
+
+
+  - id: reserved
+    range: GBIP-0900-0999
+    title: Reserved

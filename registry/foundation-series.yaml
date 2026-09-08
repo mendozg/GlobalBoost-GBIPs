@@ -1,0 +1,76 @@
+schema-version: 1.0
+
+
+foundation-series:
+
+
+  version: 1.x
+
+
+  proposals:
+
+
+    - number: GBIP-0000
+      title: Proposal System
+      status: Active
+      category: Meta
+
+
+    - number: GBIP-0001
+      title: Protocol Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0002
+      title: Consensus Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0003
+      title: Network Protocol
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0004
+      title: Transaction Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0005
+      title: Block Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0006
+      title: Cryptographic Framework
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0007
+      title: Address & Identity System
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0008
+      title: Light Client Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0009
+      title: Wallet Architecture
+      status: Reserved
+      category: Standards Track
+
+
+    - number: GBIP-0010
+      title: RPC & API Specification
+      status: Reserved
+      category: Standards Track

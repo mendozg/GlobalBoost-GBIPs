@@ -1,0 +1,21 @@
+review-profile:
+
+  mandatory:
+
+    - Security-Impact
+    - Consensus-Impact
+    - Cryptographic-Impact
+    - Performance-Impact
+
+  reserved:
+
+    - Privacy-Impact
+    - Compatibility-Impact
+    - Deployment-Risk
+    - API-Impact
+    - Storage-Impact
+    - Network-Impact
+    - Wallet-Impact
+    - Mining-Impact
+    - Governance-Impact
+    - Economic-Impact

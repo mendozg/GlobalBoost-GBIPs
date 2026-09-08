@@ -1,0 +1,11 @@
+status:
+
+  - Draft
+  - Review
+  - Candidate
+  - Final
+  - Active
+  - Deferred
+  - Rejected
+  - Withdrawn
+  - Superseded

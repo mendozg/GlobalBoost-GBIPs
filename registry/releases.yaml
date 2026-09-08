@@ -1,0 +1,20 @@
+Release:
+
+  Product: GlobalBoost Core
+
+  Version: 29.0.0
+
+  Classification: Major
+
+  Channel: Stable
+
+  Support: LTS
+
+  Release-Date: 2027-06-15
+
+  End-of-Life: 2030-06-15
+
+  Implemented-GBIPs:
+    - GBIP-0008
+    - GBIP-0012
+    - GBIP-0017
