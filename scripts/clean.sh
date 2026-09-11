@@ -1,175 +1,25 @@
 #!/usr/bin/env bash
-#
-# clean.sh
-#
-# GBIP Repository Cleanup Script
-#
-
 set -Eeuo pipefail
 
-###############################################################################
-# Configuration
-###############################################################################
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/lib"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${LIB_DIR}/config.sh"
+source "${LIB_DIR}/colors.sh"
+source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/cli.sh"
+source "${LIB_DIR}/filesystem.sh"
+source "${LIB_DIR}/platform.sh"
+GBIP_CLI_SCRIPT_NAME="clean.sh"
+GBIP_CLI_DESCRIPTION="Clean generated GBIP files."
+gbip_cli_init "$@"
 
-BUILD_DIR="${ROOT_DIR}/build"
-DIST_DIR="${ROOT_DIR}/dist"
-CACHE_DIR="${ROOT_DIR}/.cache"
-LOG_DIR="${ROOT_DIR}/logs"
-TEMP_DIR="${ROOT_DIR}/tmp"
-
-###############################################################################
-# Logging
-###############################################################################
-
-info() {
-    printf "\033[1;34m[INFO]\033[0m %s\n" "$*"
-}
-
-success() {
-    printf "\033[1;32m[SUCCESS]\033[0m %s\n" "$*"
-}
-
-warning() {
-    printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"
-}
-
-###############################################################################
-# Repository
-###############################################################################
-
-cd "${ROOT_DIR}"
-
-echo
-echo "========================================"
-echo "GBIP Repository Cleanup"
-echo "========================================"
-
-###############################################################################
-# Build Directory
-###############################################################################
-
-if [ -d "${BUILD_DIR}" ]; then
-
-    info "Removing build directory..."
-    rm -rf "${BUILD_DIR}"
-
+if [[ "${GBIP_FORCE}" != "1" && "${GBIP_YES}" != "1" ]]; then
+    require_confirmation "Remove generated build, distribution, cache, log, and temporary files?"
 fi
 
-###############################################################################
-# Distribution
-###############################################################################
-
-if [ -d "${DIST_DIR}" ]; then
-
-    info "Removing distribution artifacts..."
-    rm -rf "${DIST_DIR}"
-
-fi
-
-###############################################################################
-# Cache
-###############################################################################
-
-if [ -d "${CACHE_DIR}" ]; then
-
-    info "Removing cache..."
-    rm -rf "${CACHE_DIR}"
-
-fi
-
-###############################################################################
-# Temporary Files
-###############################################################################
-
-if [ -d "${TEMP_DIR}" ]; then
-
-    info "Removing temporary files..."
-    rm -rf "${TEMP_DIR}"
-
-fi
-
-###############################################################################
-# Logs
-###############################################################################
-
-if [ -d "${LOG_DIR}" ]; then
-
-    info "Removing logs..."
-    rm -rf "${LOG_DIR}"
-
-fi
-
-###############################################################################
-# Python Cache
-###############################################################################
-
-info "Removing Python cache..."
-
-find . \
-    -type d \
-    -name "__pycache__" \
-    -exec rm -rf {} + 2>/dev/null || true
-
-find . \
-    -type f \
-    -name "*.pyc" \
-    -delete
-
-find . \
-    -type f \
-    -name "*.pyo" \
-    -delete
-
-###############################################################################
-# Coverage
-###############################################################################
-
-info "Removing test coverage..."
-
-find . \
-    -name ".coverage" \
-    -delete
-
-find . \
-    -type d \
-    -name ".pytest_cache" \
-    -exec rm -rf {} + 2>/dev/null || true
-
-###############################################################################
-# Editor Files
-###############################################################################
-
-info "Removing editor backup files..."
-
-find . -name "*~" -delete
-find . -name "*.swp" -delete
-find . -name ".DS_Store" -delete
-find . -name "Thumbs.db" -delete
-
-###############################################################################
-# Empty Directories
-###############################################################################
-
-mkdir -p "${BUILD_DIR}"
-mkdir -p "${DIST_DIR}"
-mkdir -p "${CACHE_DIR}"
-mkdir -p "${LOG_DIR}"
-
-###############################################################################
-# Summary
-###############################################################################
-
-echo
-echo "========================================"
-
-success "Repository cleaned successfully."
-
-echo "Directories recreated:"
-echo "  build/"
-echo "  dist/"
-echo "  .cache/"
-echo "  logs/"
-
-echo "========================================"
+fs_clean_build
+fs_clean_distribution
+fs_clean_runtime
+success "Clean completed."

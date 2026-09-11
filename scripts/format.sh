@@ -1,214 +1,44 @@
 #!/usr/bin/env bash
-#
-# format.sh
-#
-# GBIP Repository Formatting Script
-#
-
 set -Eeuo pipefail
 
-###############################################################################
-# Configuration
-###############################################################################
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/lib"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${LIB_DIR}/config.sh"
+source "${LIB_DIR}/colors.sh"
+source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/cli.sh"
+source "${LIB_DIR}/filesystem.sh"
+source "${LIB_DIR}/platform.sh"
+source "${LIB_DIR}/python.sh"
 
-###############################################################################
-# Logging
-###############################################################################
+GBIP_CLI_SCRIPT_NAME="format.sh"
+GBIP_CLI_DESCRIPTION="Format GBIP sources."
+gbip_cli_init "$@"
 
-info() {
-    printf "\033[1;34m[INFO]\033[0m %s\n" "$*"
-}
-
-success() {
-    printf "\033[1;32m[SUCCESS]\033[0m %s\n" "$*"
-}
-
-warning() {
-    printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"
-}
-
-###############################################################################
-# Repository
-###############################################################################
-
-cd "${ROOT_DIR}"
-
-echo
-echo "========================================"
-echo "GBIP Repository Formatter"
-echo "========================================"
-
-###############################################################################
-# Format Python
-###############################################################################
-
-if command -v black >/dev/null 2>&1; then
-
-    info "Formatting Python..."
-
-    if [ -d tools ]; then
-        black tools
-    fi
-
-    if [ -d tests ]; then
-        black tests
-    fi
-
-    success "Python formatted."
-
-else
-
-    warning "black not installed."
-
+if [[ "${GBIP_CI:-0}" == "1" && "${GBIP_FORCE}" != "1" ]]; then
+    gbip_die_usage "Formatting is disabled in CI unless --force is supplied."
 fi
 
-###############################################################################
-# Sort Python Imports
-###############################################################################
+python_require_version
 
-if command -v isort >/dev/null 2>&1; then
-
-    info "Sorting Python imports..."
-
-    [ -d tools ] && isort tools
-    [ -d tests ] && isort tests
-
-    success "Imports sorted."
-
+if python_exec -m black --version >/dev/null 2>&1; then
+    python_black "${GBIP_TOOLS_DIR}" "${GBIP_TESTS_DIR}"
 else
-
-    warning "isort not installed."
-
+    warning "black is not installed; skipping Python formatting."
 fi
 
-###############################################################################
-# Format Shell Scripts
-###############################################################################
-
-if command -v shfmt >/dev/null 2>&1; then
-
-    info "Formatting shell scripts..."
-
-    find scripts -type f -name "*.sh" -exec shfmt -w {} +
-
-    success "Shell scripts formatted."
-
+if python_exec -m isort --version-number >/dev/null 2>&1; then
+    python_isort "${GBIP_TOOLS_DIR}" "${GBIP_TESTS_DIR}"
 else
-
-    warning "shfmt not installed."
-
+    warning "isort is not installed; skipping import formatting."
 fi
 
-###############################################################################
-# Format JSON
-###############################################################################
-
-if command -v jq >/dev/null 2>&1; then
-
-    info "Formatting JSON..."
-
-    while IFS= read -r FILE
-    do
-        TMP="$(mktemp)"
-        jq . "${FILE}" > "${TMP}"
-        mv "${TMP}" "${FILE}"
-    done < <(find . -type f -name "*.json")
-
-    success "JSON formatted."
-
+if command_exists shfmt; then
+    find "${GBIP_SCRIPTS_DIR}" -type f -name "*.sh" -print0 | xargs -0 shfmt -w
 else
-
-    warning "jq not installed."
-
+    warning "shfmt is not installed; skipping shell formatting."
 fi
 
-###############################################################################
-# Format YAML
-###############################################################################
-
-if command -v prettier >/dev/null 2>&1; then
-
-    info "Formatting YAML..."
-
-    prettier --write "**/*.{yaml,yml}"
-
-    success "YAML formatted."
-
-else
-
-    warning "prettier not installed."
-
-fi
-
-###############################################################################
-# Format Markdown
-###############################################################################
-
-if command -v prettier >/dev/null 2>&1; then
-
-    info "Formatting Markdown..."
-
-    prettier --write "**/*.md"
-
-    success "Markdown formatted."
-
-else
-
-    warning "prettier not installed."
-
-fi
-
-###############################################################################
-# Normalize Line Endings
-###############################################################################
-
-if command -v dos2unix >/dev/null 2>&1; then
-
-    info "Normalizing line endings..."
-
-    find . \
-        -type f \
-        \( -name "*.md" \
-        -o -name "*.json" \
-        -o -name "*.yaml" \
-        -o -name "*.yml" \
-        -o -name "*.sh" \
-        -o -name "*.py" \) \
-        -exec dos2unix {} + >/dev/null 2>&1
-
-    success "Line endings normalized."
-
-else
-
-    warning "dos2unix not installed."
-
-fi
-
-###############################################################################
-# Remove Trailing Whitespace
-###############################################################################
-
-info "Removing trailing whitespace..."
-
-find . \
-    -type f \
-    \( -name "*.md" \
-    -o -name "*.json" \
-    -o -name "*.yaml" \
-    -o -name "*.yml" \
-    -o -name "*.py" \
-    -o -name "*.sh" \) \
-    -exec sed -i 's/[[:space:]]*$//' {} +
-
-success "Trailing whitespace removed."
-
-###############################################################################
-# Summary
-###############################################################################
-
-echo
-echo "========================================"
-success "Formatting completed successfully."
-echo "========================================"
+success "Format completed."

@@ -1,102 +1,33 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/lib"
 
-BUILD_DIR="$ROOT_DIR/build"
-DIST_DIR="$ROOT_DIR/dist"
+source "${LIB_DIR}/config.sh"
+source "${LIB_DIR}/colors.sh"
+source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/cli.sh"
+source "${LIB_DIR}/filesystem.sh"
+source "${LIB_DIR}/platform.sh"
+source "${LIB_DIR}/python.sh"
 
-echo "=============================================="
-echo " GlobalBoost GBIPs Build"
-echo "=============================================="
-echo
+GBIP_CLI_SCRIPT_NAME="build.sh"
+GBIP_CLI_DESCRIPTION="Build the GBIP distribution tree."
+gbip_cli_init "$@"
 
-# ------------------------------------------------
-# Clean build directories
-# ------------------------------------------------
+gbip_repository_check
+python_require_version
+fs_clean_build
 
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
-mkdir -p "$DIST_DIR"
-
-echo "[1/5] Preparing build directories..."
-
-# ------------------------------------------------
-# Validate repository
-# ------------------------------------------------
-
-if [[ -x "$ROOT_DIR/validate.sh" ]]; then
-    echo "[2/5] Validating GBIP repository..."
-    "$ROOT_DIR/validate.sh"
-else
-    echo "ERROR: validate.sh not found or not executable."
-    exit 1
-fi
-
-# ------------------------------------------------
-# Collect GBIPs
-# ------------------------------------------------
-
-echo "[3/5] Collecting GBIP documents..."
-
-GBIP_COUNT=0
-
-for file in "$ROOT_DIR"/gbip-*.md; do
-    [[ -f "$file" ]] || continue
-
-    cp "$file" "$BUILD_DIR/"
-    GBIP_COUNT=$((GBIP_COUNT + 1))
+for dir in gbips registry schemas docs templates; do
+    src="${GBIP_ROOT_DIR}/${dir}"
+    [[ -d "${src}" ]] && cp -a "${src}" "${GBIP_BUILD_DIR}/${dir}"
 done
 
-if [[ "$GBIP_COUNT" -eq 0 ]]; then
-    echo "ERROR: No GBIP documents found."
-    exit 1
-fi
+for file in README.md LICENSE CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md CHANGELOG.md ROADMAP.md VERSION; do
+    [[ -f "${GBIP_ROOT_DIR}/${file}" ]] && cp -a "${GBIP_ROOT_DIR}/${file}" "${GBIP_BUILD_DIR}/${file}"
+done
 
-echo "      Found $GBIP_COUNT GBIP document(s)."
-
-# ------------------------------------------------
-# Generate manifest
-# ------------------------------------------------
-
-echo "[4/5] Generating manifest..."
-
-MANIFEST="$BUILD_DIR/MANIFEST.sha256"
-
-(
-    cd "$BUILD_DIR"
-    sha256sum gbip-*.md > "$MANIFEST"
-)
-
-# ------------------------------------------------
-# Create distribution archive
-# ------------------------------------------------
-
-echo "[5/5] Creating distribution package..."
-
-VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "development")"
-
-ARCHIVE="$DIST_DIR/GlobalBoost-GBIPs-$VERSION.tar.gz"
-
-tar \
-    --exclude="build" \
-    --exclude="dist" \
-    -czf "$ARCHIVE" \
-    gbip-*.md \
-    README.md \
-    LICENSE \
-    2>/dev/null || {
-        echo "WARNING: Some optional repository files were not included."
-    }
-
-echo
-echo "=============================================="
-echo " Build complete"
-echo "=============================================="
-echo
-echo "GBIPs:    $GBIP_COUNT"
-echo "Version:  $VERSION"
-echo "Build:    $BUILD_DIR"
-echo "Release:  $ARCHIVE"
-echo
+success "Build completed: ${GBIP_BUILD_DIR}"

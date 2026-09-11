@@ -1,90 +1,30 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/lib"
 
-echo "=============================================="
-echo " GlobalBoost GBIPs Bootstrap"
-echo "=============================================="
-echo
+source "${LIB_DIR}/config.sh"
+source "${LIB_DIR}/colors.sh"
+source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/cli.sh"
+source "${LIB_DIR}/filesystem.sh"
+source "${LIB_DIR}/platform.sh"
+source "${LIB_DIR}/python.sh"
 
-# ------------------------------------------------
-# Requirements
-# ------------------------------------------------
+GBIP_CLI_SCRIPT_NAME="bootstrap.sh"
+GBIP_CLI_DESCRIPTION="Initialize the GBIP development environment."
+gbip_cli_init "$@"
 
-command -v git >/dev/null 2>&1 || {
-    echo "ERROR: git is required."
-    exit 1
-}
+gbip_repository_check
+gbip_init_runtime
+fs_initialize_repository
+python_require_version
+python_ensure_venv
 
-command -v bash >/dev/null 2>&1 || {
-    echo "ERROR: bash is required."
-    exit 1
-}
+[[ -f "${GBIP_REQUIREMENTS_FILE}" ]] && python_install_requirements "${GBIP_REQUIREMENTS_FILE}"
+[[ -f "${GBIP_DEV_REQUIREMENTS_FILE}" ]] && python_install_requirements "${GBIP_DEV_REQUIREMENTS_FILE}"
 
-echo "Repository: $ROOT_DIR"
-echo "Git:        $(git --version)"
-
-# ------------------------------------------------
-# Optional Python support
-# ------------------------------------------------
-
-if command -v python3 >/dev/null 2>&1; then
-    echo "Python:      $(python3 --version)"
-else
-    echo "Python:      not installed (optional)"
-fi
-
-echo
-
-# ------------------------------------------------
-# Repository directories
-# ------------------------------------------------
-
-echo "Checking repository structure..."
-
-mkdir -p \
-    tools \
-    schemas \
-    templates
-
-# ------------------------------------------------
-# Executable permissions
-# ------------------------------------------------
-
-if [[ -f "$ROOT_DIR/validate.sh" ]]; then
-    chmod +x "$ROOT_DIR/validate.sh"
-    echo "Enabled: validate.sh"
-fi
-
-# ------------------------------------------------
-# Check GBIP files
-# ------------------------------------------------
-
-GBIP_COUNT=0
-
-for file in "$ROOT_DIR"/gbip-*.md; do
-    [[ -f "$file" ]] || continue
-    GBIP_COUNT=$((GBIP_COUNT + 1))
-done
-
-echo "GBIP documents found: $GBIP_COUNT"
-
-# ------------------------------------------------
-# Run validation
-# ------------------------------------------------
-
-if [[ -x "$ROOT_DIR/validate.sh" ]]; then
-    echo
-    echo "Running GBIP validation..."
-    "$ROOT_DIR/validate.sh"
-else
-    echo
-    echo "WARNING: validate.sh was not found."
-fi
-
-echo
-echo "=============================================="
-echo " Bootstrap complete"
-echo "=============================================="
+[[ -d "${GBIP_GITHOOKS_DIR}" ]] && find "${GBIP_GITHOOKS_DIR}" -type f -exec chmod +x {} \;
+success "GBIP bootstrap complete."

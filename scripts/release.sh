@@ -1,150 +1,31 @@
 #!/usr/bin/env bash
-#
-# release.sh
-#
-# GBIP Repository Release Pipeline
-#
-
 set -Eeuo pipefail
 
-###############################################################################
-# Configuration
-###############################################################################
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="${SCRIPT_DIR}/lib"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${LIB_DIR}/config.sh"
+source "${LIB_DIR}/colors.sh"
+source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/cli.sh"
+source "${LIB_DIR}/filesystem.sh"
+source "${LIB_DIR}/platform.sh"
+source "${LIB_DIR}/git.sh"
+source "${LIB_DIR}/release.sh"
 
-DIST_DIR="${ROOT_DIR}/dist"
-BUILD_DIR="${ROOT_DIR}/build"
-TOOLS_DIR="${ROOT_DIR}/tools"
+GBIP_CLI_SCRIPT_NAME="release.sh"
+GBIP_CLI_DESCRIPTION="Build and verify a GBIP release archive."
+gbip_cli_init "$@"
 
-PYTHON="${PYTHON:-python3}"
-
-VERSION="${1:-1.0.0}"
-
-DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-
-###############################################################################
-# Logging
-###############################################################################
-
-info() {
-    printf "\033[1;34m[INFO]\033[0m %s\n" "$*"
-}
-
-success() {
-    printf "\033[1;32m[SUCCESS]\033[0m %s\n" "$*"
-}
-
-warning() {
-    printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"
-}
-
-error() {
-    printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"
-}
-
-###############################################################################
-# Repository
-###############################################################################
-
-cd "${ROOT_DIR}"
-
-echo
-echo "========================================"
-echo "GBIP Release Pipeline"
-echo "========================================"
-
-###############################################################################
-# Step 1 - Validate Repository
-###############################################################################
-
-info "Running validation..."
-
-./scripts/validate.sh
-
-###############################################################################
-# Step 2 - Build Repository
-###############################################################################
-
-info "Building repository..."
-
-./scripts/build.sh
-
-###############################################################################
-# Step 3 - Generate Release Manifest
-###############################################################################
-
-if [ -f "${TOOLS_DIR}/generate_release_manifest.py" ]; then
-
-    info "Generating release manifest..."
-
-    "${PYTHON}" "${TOOLS_DIR}/generate_release_manifest.py" \
-        --version "${VERSION}"
-
+version="$(gbip_read_version)"
+if [[ "${#GBIP_CLI_REMAINING_ARGS[@]}" -gt 0 ]]; then
+    version="${GBIP_CLI_REMAINING_ARGS[0]}"
 fi
+require_semver "${version}"
+GBIP_RELEASE_VERSION="${version}"
 
-###############################################################################
-# Step 4 - Generate Checksums
-###############################################################################
-
-info "Generating SHA-256 checksums..."
-
-mkdir -p "${DIST_DIR}"
-
-find "${DIST_DIR}" -type f \
-    ! -name "*.sha256" \
-    -exec sha256sum {} \; \
-    > "${DIST_DIR}/SHA256SUMS"
-
-###############################################################################
-# Step 5 - Generate Manifest
-###############################################################################
-
-cat > "${DIST_DIR}/release.json" <<EOF
-{
-  "project": "GBIP",
-  "version": "${VERSION}",
-  "released": "${DATE}",
-  "artifacts": [
-    "GBIP-${VERSION}.zip",
-    "SHA256SUMS"
-  ]
-}
-EOF
-
-###############################################################################
-# Step 6 - Optional GPG Signing
-###############################################################################
-
-if command -v gpg >/dev/null 2>&1; then
-
-    info "Signing release manifest..."
-
-    gpg --armor \
-        --detach-sign \
-        "${DIST_DIR}/release.json" || warning "GPG signing skipped."
-
-fi
-
-###############################################################################
-# Step 7 - Display Artifacts
-###############################################################################
-
-echo
-echo "Release Artifacts"
-
-find "${DIST_DIR}" -maxdepth 1 -type f | sort
-
-###############################################################################
-# Summary
-###############################################################################
-
-echo
-echo "========================================"
-
-success "Release ${VERSION} created successfully."
-
-echo "Version : ${VERSION}"
-echo "Output  : ${DIST_DIR}"
-
-echo "========================================"
+release_build
+release_verify
+release_summary
+success "Release build completed."
