@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# release.sh
+# version.sh
 #
-# GBIP Repository Release Pipeline
+# GBIP Repository Version Manager
 #
 
 set -Eeuo pipefail
@@ -13,15 +13,9 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DIST_DIR="${ROOT_DIR}/dist"
-BUILD_DIR="${ROOT_DIR}/build"
-TOOLS_DIR="${ROOT_DIR}/tools"
+VERSION_FILE="${ROOT_DIR}/VERSION"
 
-PYTHON="${PYTHON:-python3}"
-
-VERSION="${1:-1.0.0}"
-
-DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+NEW_VERSION="${1:-}"
 
 ###############################################################################
 # Logging
@@ -44,6 +38,20 @@ error() {
 }
 
 ###############################################################################
+# Validate Input
+###############################################################################
+
+if [[ -z "${NEW_VERSION}" ]]; then
+    error "Usage: version.sh <semantic-version>"
+    exit 1
+fi
+
+if ! [[ "${NEW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9]+)*$ ]]; then
+    error "Invalid Semantic Version: ${NEW_VERSION}"
+    exit 1
+fi
+
+###############################################################################
 # Repository
 ###############################################################################
 
@@ -51,100 +59,100 @@ cd "${ROOT_DIR}"
 
 echo
 echo "========================================"
-echo "GBIP Release Pipeline"
+echo "GBIP Version Manager"
 echo "========================================"
 
 ###############################################################################
-# Step 1 - Validate Repository
+# Update VERSION File
 ###############################################################################
 
-info "Running validation..."
+info "Updating VERSION..."
 
-./scripts/validate.sh
-
-###############################################################################
-# Step 2 - Build Repository
-###############################################################################
-
-info "Building repository..."
-
-./scripts/build.sh
+echo "${NEW_VERSION}" > "${VERSION_FILE}"
 
 ###############################################################################
-# Step 3 - Generate Release Manifest
+# Update Markdown Files
 ###############################################################################
 
-if [ -f "${TOOLS_DIR}/generate_release_manifest.py" ]; then
+info "Updating Markdown documents..."
 
-    info "Generating release manifest..."
+find . \
+    -type f \
+    -name "*.md" \
+    -exec sed -i \
+    -E "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: ${NEW_VERSION}/g" {} +
 
-    "${PYTHON}" "${TOOLS_DIR}/generate_release_manifest.py" \
-        --version "${VERSION}"
+###############################################################################
+# Update JSON Schemas
+###############################################################################
+
+info "Updating JSON schemas..."
+
+find schemas \
+    -type f \
+    -name "*.json" \
+    -exec sed -i \
+    -E "s/\"version\": *\"[^\"]+\"/\"version\": \"${NEW_VERSION}\"/g" {} +
+
+###############################################################################
+# Update Registry Files
+###############################################################################
+
+if [ -d registry ]; then
+
+    info "Updating registries..."
+
+    find registry \
+        -type f \
+        \( -name "*.yaml" -o -name "*.yml" \) \
+        -exec sed -i \
+        -E "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: ${NEW_VERSION}/g" {} +
 
 fi
 
 ###############################################################################
-# Step 4 - Generate Checksums
+# Update CHANGELOG
 ###############################################################################
 
-info "Generating SHA-256 checksums..."
+if [ -f CHANGELOG.md ]; then
 
-mkdir -p "${DIST_DIR}"
+    info "Updating CHANGELOG..."
 
-find "${DIST_DIR}" -type f \
-    ! -name "*.sha256" \
-    -exec sha256sum {} \; \
-    > "${DIST_DIR}/SHA256SUMS"
+    DATE="$(date +%Y-%m-%d)"
 
-###############################################################################
-# Step 5 - Generate Manifest
-###############################################################################
-
-cat > "${DIST_DIR}/release.json" <<EOF
-{
-  "project": "GBIP",
-  "version": "${VERSION}",
-  "released": "${DATE}",
-  "artifacts": [
-    "GBIP-${VERSION}.zip",
-    "SHA256SUMS"
-  ]
-}
-EOF
-
-###############################################################################
-# Step 6 - Optional GPG Signing
-###############################################################################
-
-if command -v gpg >/dev/null 2>&1; then
-
-    info "Signing release manifest..."
-
-    gpg --armor \
-        --detach-sign \
-        "${DIST_DIR}/release.json" || warning "GPG signing skipped."
+    sed -i \
+        "1a\\
+## ${NEW_VERSION} (${DATE})\\
+- Repository version updated.\\
+" CHANGELOG.md
 
 fi
 
 ###############################################################################
-# Step 7 - Display Artifacts
+# Git Tag Information
 ###############################################################################
 
-echo
-echo "Release Artifacts"
+if git rev-parse --git-dir >/dev/null 2>&1; then
 
-find "${DIST_DIR}" -maxdepth 1 -type f | sort
+    info "Suggested Git commands:"
+
+    echo
+    echo "git add ."
+    echo "git commit -m \"Release v${NEW_VERSION}\""
+    echo "git tag -a v${NEW_VERSION} -m \"GBIP ${NEW_VERSION}\""
+    echo "git push origin main --tags"
+    echo
+
+fi
 
 ###############################################################################
 # Summary
 ###############################################################################
 
-echo
 echo "========================================"
 
-success "Release ${VERSION} created successfully."
+success "Repository updated to version ${NEW_VERSION}"
 
-echo "Version : ${VERSION}"
-echo "Output  : ${DIST_DIR}"
+echo "VERSION : ${NEW_VERSION}"
 
 echo "========================================"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# release.sh
+# lint.sh
 #
-# GBIP Repository Release Pipeline
+# GBIP Repository Linting Script
 #
 
 set -Eeuo pipefail
@@ -13,15 +13,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DIST_DIR="${ROOT_DIR}/dist"
-BUILD_DIR="${ROOT_DIR}/build"
-TOOLS_DIR="${ROOT_DIR}/tools"
-
-PYTHON="${PYTHON:-python3}"
-
-VERSION="${1:-1.0.0}"
-
-DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+EXIT_CODE=0
 
 ###############################################################################
 # Logging
@@ -39,8 +31,8 @@ warning() {
     printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"
 }
 
-error() {
-    printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"
+failure() {
+    printf "\033[1;31m[FAILED]\033[0m %s\n" "$*"
 }
 
 ###############################################################################
@@ -51,89 +43,148 @@ cd "${ROOT_DIR}"
 
 echo
 echo "========================================"
-echo "GBIP Release Pipeline"
+echo "GBIP Repository Lint"
 echo "========================================"
 
 ###############################################################################
-# Step 1 - Validate Repository
+# Markdown Lint
 ###############################################################################
 
-info "Running validation..."
+if command -v markdownlint >/dev/null 2>&1; then
 
-./scripts/validate.sh
+    info "Linting Markdown..."
 
-###############################################################################
-# Step 2 - Build Repository
-###############################################################################
+    if markdownlint "**/*.md"; then
+        success "Markdown passed."
+    else
+        failure "Markdown lint failed."
+        EXIT_CODE=1
+    fi
 
-info "Building repository..."
+else
 
-./scripts/build.sh
-
-###############################################################################
-# Step 3 - Generate Release Manifest
-###############################################################################
-
-if [ -f "${TOOLS_DIR}/generate_release_manifest.py" ]; then
-
-    info "Generating release manifest..."
-
-    "${PYTHON}" "${TOOLS_DIR}/generate_release_manifest.py" \
-        --version "${VERSION}"
+    warning "markdownlint not installed."
 
 fi
 
 ###############################################################################
-# Step 4 - Generate Checksums
+# YAML Lint
 ###############################################################################
 
-info "Generating SHA-256 checksums..."
+if command -v yamllint >/dev/null 2>&1; then
 
-mkdir -p "${DIST_DIR}"
+    info "Linting YAML..."
 
-find "${DIST_DIR}" -type f \
-    ! -name "*.sha256" \
-    -exec sha256sum {} \; \
-    > "${DIST_DIR}/SHA256SUMS"
+    if yamllint .; then
+        success "YAML passed."
+    else
+        failure "YAML lint failed."
+        EXIT_CODE=1
+    fi
 
-###############################################################################
-# Step 5 - Generate Manifest
-###############################################################################
+else
 
-cat > "${DIST_DIR}/release.json" <<EOF
-{
-  "project": "GBIP",
-  "version": "${VERSION}",
-  "released": "${DATE}",
-  "artifacts": [
-    "GBIP-${VERSION}.zip",
-    "SHA256SUMS"
-  ]
-}
-EOF
-
-###############################################################################
-# Step 6 - Optional GPG Signing
-###############################################################################
-
-if command -v gpg >/dev/null 2>&1; then
-
-    info "Signing release manifest..."
-
-    gpg --armor \
-        --detach-sign \
-        "${DIST_DIR}/release.json" || warning "GPG signing skipped."
+    warning "yamllint not installed."
 
 fi
 
 ###############################################################################
-# Step 7 - Display Artifacts
+# JSON Validation
 ###############################################################################
 
-echo
-echo "Release Artifacts"
+if command -v jq >/dev/null 2>&1; then
 
-find "${DIST_DIR}" -maxdepth 1 -type f | sort
+    info "Checking JSON..."
+
+    while IFS= read -r FILE
+    do
+        if ! jq empty "${FILE}" >/dev/null 2>&1; then
+            failure "Invalid JSON: ${FILE}"
+            EXIT_CODE=1
+        fi
+    done < <(find . -type f -name "*.json")
+
+    success "JSON syntax verified."
+
+else
+
+    warning "jq not installed."
+
+fi
+
+###############################################################################
+# ShellCheck
+###############################################################################
+
+if command -v shellcheck >/dev/null 2>&1; then
+
+    info "Linting shell scripts..."
+
+    while IFS= read -r FILE
+    do
+        shellcheck "${FILE}"
+    done < <(find scripts -type f -name "*.sh")
+
+    success "Shell scripts passed."
+
+else
+
+    warning "shellcheck not installed."
+
+fi
+
+###############################################################################
+# Python Lint (Ruff)
+###############################################################################
+
+if command -v ruff >/dev/null 2>&1; then
+
+    info "Linting Python..."
+
+    ruff check tools tests
+
+    success "Python passed."
+
+else
+
+    warning "ruff not installed."
+
+fi
+
+###############################################################################
+# Python Formatting Check (Black)
+###############################################################################
+
+if command -v black >/dev/null 2>&1; then
+
+    info "Checking Python formatting..."
+
+    black --check tools tests
+
+    success "Formatting passed."
+
+else
+
+    warning "black not installed."
+
+fi
+
+###############################################################################
+# Git Whitespace Checks
+###############################################################################
+
+if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+
+    info "Checking whitespace..."
+
+    if git diff --check; then
+        success "Whitespace check passed."
+    else
+        failure "Whitespace errors found."
+        EXIT_CODE=1
+    fi
+
+fi
 
 ###############################################################################
 # Summary
@@ -142,9 +193,12 @@ find "${DIST_DIR}" -maxdepth 1 -type f | sort
 echo
 echo "========================================"
 
-success "Release ${VERSION} created successfully."
-
-echo "Version : ${VERSION}"
-echo "Output  : ${DIST_DIR}"
+if [ "${EXIT_CODE}" -eq 0 ]; then
+    success "Lint completed successfully."
+else
+    failure "Lint completed with errors."
+fi
 
 echo "========================================"
+
+exit "${EXIT_CODE}"

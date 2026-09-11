@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# release.sh
+# clean.sh
 #
-# GBIP Repository Release Pipeline
+# GBIP Repository Cleanup Script
 #
 
 set -Eeuo pipefail
@@ -13,15 +13,11 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DIST_DIR="${ROOT_DIR}/dist"
 BUILD_DIR="${ROOT_DIR}/build"
-TOOLS_DIR="${ROOT_DIR}/tools"
-
-PYTHON="${PYTHON:-python3}"
-
-VERSION="${1:-1.0.0}"
-
-DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+DIST_DIR="${ROOT_DIR}/dist"
+CACHE_DIR="${ROOT_DIR}/.cache"
+LOG_DIR="${ROOT_DIR}/logs"
+TEMP_DIR="${ROOT_DIR}/tmp"
 
 ###############################################################################
 # Logging
@@ -39,10 +35,6 @@ warning() {
     printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"
 }
 
-error() {
-    printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"
-}
-
 ###############################################################################
 # Repository
 ###############################################################################
@@ -51,89 +43,119 @@ cd "${ROOT_DIR}"
 
 echo
 echo "========================================"
-echo "GBIP Release Pipeline"
+echo "GBIP Repository Cleanup"
 echo "========================================"
 
 ###############################################################################
-# Step 1 - Validate Repository
+# Build Directory
 ###############################################################################
 
-info "Running validation..."
+if [ -d "${BUILD_DIR}" ]; then
 
-./scripts/validate.sh
-
-###############################################################################
-# Step 2 - Build Repository
-###############################################################################
-
-info "Building repository..."
-
-./scripts/build.sh
-
-###############################################################################
-# Step 3 - Generate Release Manifest
-###############################################################################
-
-if [ -f "${TOOLS_DIR}/generate_release_manifest.py" ]; then
-
-    info "Generating release manifest..."
-
-    "${PYTHON}" "${TOOLS_DIR}/generate_release_manifest.py" \
-        --version "${VERSION}"
+    info "Removing build directory..."
+    rm -rf "${BUILD_DIR}"
 
 fi
 
 ###############################################################################
-# Step 4 - Generate Checksums
+# Distribution
 ###############################################################################
 
-info "Generating SHA-256 checksums..."
+if [ -d "${DIST_DIR}" ]; then
 
+    info "Removing distribution artifacts..."
+    rm -rf "${DIST_DIR}"
+
+fi
+
+###############################################################################
+# Cache
+###############################################################################
+
+if [ -d "${CACHE_DIR}" ]; then
+
+    info "Removing cache..."
+    rm -rf "${CACHE_DIR}"
+
+fi
+
+###############################################################################
+# Temporary Files
+###############################################################################
+
+if [ -d "${TEMP_DIR}" ]; then
+
+    info "Removing temporary files..."
+    rm -rf "${TEMP_DIR}"
+
+fi
+
+###############################################################################
+# Logs
+###############################################################################
+
+if [ -d "${LOG_DIR}" ]; then
+
+    info "Removing logs..."
+    rm -rf "${LOG_DIR}"
+
+fi
+
+###############################################################################
+# Python Cache
+###############################################################################
+
+info "Removing Python cache..."
+
+find . \
+    -type d \
+    -name "__pycache__" \
+    -exec rm -rf {} + 2>/dev/null || true
+
+find . \
+    -type f \
+    -name "*.pyc" \
+    -delete
+
+find . \
+    -type f \
+    -name "*.pyo" \
+    -delete
+
+###############################################################################
+# Coverage
+###############################################################################
+
+info "Removing test coverage..."
+
+find . \
+    -name ".coverage" \
+    -delete
+
+find . \
+    -type d \
+    -name ".pytest_cache" \
+    -exec rm -rf {} + 2>/dev/null || true
+
+###############################################################################
+# Editor Files
+###############################################################################
+
+info "Removing editor backup files..."
+
+find . -name "*~" -delete
+find . -name "*.swp" -delete
+find . -name ".DS_Store" -delete
+find . -name "Thumbs.db" -delete
+
+###############################################################################
+# Empty Directories
+###############################################################################
+
+mkdir -p "${BUILD_DIR}"
 mkdir -p "${DIST_DIR}"
-
-find "${DIST_DIR}" -type f \
-    ! -name "*.sha256" \
-    -exec sha256sum {} \; \
-    > "${DIST_DIR}/SHA256SUMS"
-
-###############################################################################
-# Step 5 - Generate Manifest
-###############################################################################
-
-cat > "${DIST_DIR}/release.json" <<EOF
-{
-  "project": "GBIP",
-  "version": "${VERSION}",
-  "released": "${DATE}",
-  "artifacts": [
-    "GBIP-${VERSION}.zip",
-    "SHA256SUMS"
-  ]
-}
-EOF
-
-###############################################################################
-# Step 6 - Optional GPG Signing
-###############################################################################
-
-if command -v gpg >/dev/null 2>&1; then
-
-    info "Signing release manifest..."
-
-    gpg --armor \
-        --detach-sign \
-        "${DIST_DIR}/release.json" || warning "GPG signing skipped."
-
-fi
-
-###############################################################################
-# Step 7 - Display Artifacts
-###############################################################################
-
-echo
-echo "Release Artifacts"
-
-find "${DIST_DIR}" -maxdepth 1 -type f | sort
+mkdir -p "${CACHE_DIR}"
+mkdir -p "${LOG_DIR}"
 
 ###############################################################################
 # Summary
@@ -142,9 +164,12 @@ find "${DIST_DIR}" -maxdepth 1 -type f | sort
 echo
 echo "========================================"
 
-success "Release ${VERSION} created successfully."
+success "Repository cleaned successfully."
 
-echo "Version : ${VERSION}"
-echo "Output  : ${DIST_DIR}"
+echo "Directories recreated:"
+echo "  build/"
+echo "  dist/"
+echo "  .cache/"
+echo "  logs/"
 
 echo "========================================"
