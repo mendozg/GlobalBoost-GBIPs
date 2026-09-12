@@ -21,5 +21,7 @@ python_require_version
 python_ensure_venv
 [[ -f "${GBIP_REQUIREMENTS_FILE}" ]] && python_install_requirements "${GBIP_REQUIREMENTS_FILE}"
 [[ -f "${GBIP_DEV_REQUIREMENTS_FILE}" ]] && python_install_requirements "${GBIP_DEV_REQUIREMENTS_FILE}"
-[[ -f "${GBIP_PACKAGE_FILE}" && command -v npm >/dev/null 2>&1 ]] && (cd "${GBIP_ROOT_DIR}" && npm install)
+if [[ -f "${GBIP_PACKAGE_FILE}" ]] && command -v npm >/dev/null 2>&1; then
+    (cd "${GBIP_ROOT_DIR}" && npm install)
+fi
 success "Dependencies installed."
